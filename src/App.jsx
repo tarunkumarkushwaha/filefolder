@@ -2,11 +2,41 @@ import './App.css'
 import Folder from './components/Folder'
 import { folderData } from '../FolderData/data'
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 
 const App = () => {
   const [selected, setSelected] = useState(folderData);
+  const [Name, setName] = useState("");
+  const [openeditname, setopeneditname] = useState(false);
   const [folderTree, setFolderTree] = useState(folderData);
   const ref = useRef(null);
+
+  const renameInFolderTree = (data, selectedValue, newName) => {
+    if (Array.isArray(data)) {
+      return data.map(item => renameInFolderTree(item, selectedValue, newName));
+    }
+
+    if (typeof data === 'object' && data !== null) {
+      const newObject = {};
+      for (const [key, value] of Object.entries(data)) {
+        const newKey = (key === selectedValue) ? newName : key;
+        newObject[newKey] = renameInFolderTree(value, selectedValue, newName);
+      }
+      return newObject;
+    }
+
+    return data === selectedValue ? newName : data;
+  };
+
+  function renameInData(selectedValue, newName) {
+    const updatedFolderTree = renameInFolderTree(folderTree, selectedValue, newName);
+    console.log(updatedFolderTree)
+    setFolderTree(updatedFolderTree);
+    setopeneditname(false);
+    toast.success(`${typeof selectedValue == "string" ? selectedValue : ""} renamed to ${newName}`)
+  }
+
+  // console.log(selected,Name,"select,name")
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -21,26 +51,24 @@ const App = () => {
     };
   }, []);
 
-  console.log(selected)
   return (
     <>
-      <h2 className='p-10 text-center font-serif font-bold text-xl'>Tarun File Viewer</h2>
+      <h2 className='p-10 text-center font-serif bg-slate-900 font-bold min-h-[15vh]: text-xl'>Tarun File Manager</h2>
       <div
-        // onClick={(e)=>{
-        //   setSelected(e.target.innerText)}} 
-        className='p-16 flex w-full justify-center  items-center'>
+        className='p-16 flex w-full justify-center bg-slate-300 min-h-[85vh] items-center'>
         <Folder
           ref={ref}
           folderTree={folderTree}
           setFolderTree={setFolderTree}
+          Name={Name}
+          setName={setName}
+          renameInData={renameInData}
+          openeditname={openeditname}
+          setopeneditname={setopeneditname}
           selected={selected}
           setSelected={setSelected}
         />
       </div>
-      {/* <div ref={ref}>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, suscipit. Consequuntur temporibus nobis nihil inventore maxime! Dolore, neque soluta nihil voluptates illum perspiciatis optio voluptate voluptatibus odio cupiditate ipsum at possimus dolorum magni mollitia officiis deserunt consequatur sequi vel ad delectus itaque commodi. Nemo molestiae, nisi consequuntur ad magnam fugiat.
-        {isClickedOutside && <p>Clicked outside!</p>}
-      </div> */}
     </>
   );
 };

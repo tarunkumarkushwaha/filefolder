@@ -9,16 +9,15 @@ import ListIcon from "@mui/icons-material/List";
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
 import { folderData } from '../../FolderData/data';
+import { toast } from 'react-toastify';
+import EditableDiv from './EditableDiv';
 
 const Folder = React.forwardRef((props, ref) => {
     const { folderTree, setFolderTree, selected, setSelected, level = 0 } = props
     const [collapsed, setCollapsed] = useState({});
     const [Name, setName] = useState("");
     const [openSetFile, setopenSetFile] = useState(false);
-    const [openeditname, setopeneditname] = useState(false);
     const [openSetFolder, setopenSetFolder] = useState(false);
 
     const icons = {
@@ -29,6 +28,7 @@ const Folder = React.forwardRef((props, ref) => {
         js: <JavascriptIcon className="text-yellow-500 text-sm mx-2" />,
         txt: <TextFieldsIcon className="text-yellow-100 text-sm mx-2" />,
         others: <ListIcon className="text-gray-500 text-sm mx-2" />,
+        dmg: <ListIcon className="text-gray-500 text-sm mx-2" />,
     };
 
     const fileExtensionsMap = {
@@ -38,6 +38,7 @@ const Folder = React.forwardRef((props, ref) => {
         mpg: "video",
         mp3: "audio",
         exe: "exe",
+        dmg: "dmg",
         js: "js",
         txt: "txt",
     };
@@ -84,12 +85,8 @@ const Folder = React.forwardRef((props, ref) => {
             const updatedFolder = {};
 
             for (const [key, value] of Object.entries(folder)) {
-                // Handle folder deletion
                 if (key.toLowerCase() === deleteTarget.toLowerCase()) {
-                    return null; // Remove the entire folder
                 }
-
-                // Handle file deletion
                 if (Array.isArray(value)) {
                     const filteredValues = value.map((item) => {
                         if (typeof item === "string") {
@@ -111,7 +108,7 @@ const Folder = React.forwardRef((props, ref) => {
             }
             return Object.keys(updatedFolder).length ? updatedFolder : null;
         }).filter(Boolean);
-
+        toast.success(`${deleteTarget} deleted`)
         setFolderTree(updatedData);
     };
 
@@ -136,6 +133,34 @@ const Folder = React.forwardRef((props, ref) => {
         else if (newValue.split(".").length > 2) { alert("double dot not allowed") }
         else { alert("file not supported") }
     }
+
+    const renameInFolderTree = (data, selectedValue, newName) => {
+       
+        if (Array.isArray(data)) {
+          return data.map(item => renameInFolderTree(item, selectedValue, newName));
+        }
+    
+        if (typeof data === 'object' && data !== null) {
+          const newObject = {};
+          for (const [key, value] of Object.entries(data)) {
+          
+            const newKey = (key === selectedValue) ? newName : key;
+    
+            newObject[newKey] = renameInFolderTree(value, selectedValue, newName);
+          }
+          return newObject;
+        }
+    
+        return data === selectedValue ? newName : data;
+      };
+    
+    
+      const renameInData = (selectedValue, newName) => {
+        const updatedFolderTree = renameInFolderTree(folderTree, selectedValue, newName);
+        setFolderTree(updatedFolderTree);
+        toast.success(`${selectedValue} is renamed to ${newName}`)
+      };
+    
 
     function addFolder(parentFolderName, newFolderName) {
         const updatedData = folderTree.map((folder) => {
@@ -167,10 +192,6 @@ const Folder = React.forwardRef((props, ref) => {
             if (openSetFile) {
                 addValueToArray(selected, Name)
                 setopenSetFile(false)
-            }
-            else if (openeditname) {
-                editItemName(selected, Name)
-                setopeneditname(false)
             }
             else { addFolder(selected, Name); 
                 setopenSetFolder(false)
@@ -226,20 +247,17 @@ const Folder = React.forwardRef((props, ref) => {
                 return (
                     <div key={currentKey} style={{ marginLeft: `${currentLevel * 10}px` }}>
                         <span
-                            className={`cursor-pointer font-bold flex items-center border p-2 ${selected == key ? " border-slate-600 rounded-md" : " border-slate-300 rounded-md"}`}
+                            className={`cursor-pointer font-bold flex items-center border p-2 ${selected == key ? " border-slate-600 rounded-md" : " border-slate-900 rounded-md"}`}
                             onClick={() => toggleCollapse(currentKey, key)}
                         >
                             <span
-                                className={`mx-2 transform transition-transform ${selected == key ? "text-slate-700" : "text-slate-400"} duration-100 ${collapsed[currentKey] ? '' : 'rotate-90'
+                                className={`mx-2 transform transition-transform duration-100 ${collapsed[currentKey] ? '' : 'rotate-90'
                                     }`}
                             >
                                 <ArrowForwardIosIcon fontSize='small' />
                             </span>
-                            {key}
-                            {selected == key && <div className='flex justify-end w-full'>
-                                <div title='delete' className='cursor-pointer px-2' onClick={() => deleteItem(selected)}><DeleteIcon /></div>
-                                <div title='modify' className='cursor-pointer px-2' onClick={() => setopenSetFile(!openSetFile)}><EditIcon /></div>
-                            </div>}
+                            <EditableDiv data={key} selected={selected} deleteItem={deleteItem} renameInData={renameInData} />
+            
                         </span>
 
                         {!collapsed[currentKey] && (
@@ -247,7 +265,7 @@ const Folder = React.forwardRef((props, ref) => {
                                 {(openSetFile || openSetFolder) && <input type="text"
                                     style={{ marginLeft: `${currentLevel * 20}px` }}
                                     placeholder='enter file name'
-                                    className=' focus:outline-none p-1 rounded-md border border-slate-400'
+                                    className=' focus:outline-none p-1 rounded-md border bg-slate-900 border-slate-700 text-slate-400'
                                     onKeyDown={handleKeyPress}
                                     onChange={(e) => setName(e.target.value)} />}
                             </div>
@@ -258,26 +276,22 @@ const Folder = React.forwardRef((props, ref) => {
         }
 
         return (
-            <div onClick={() => setSelected(data)} className={`flex items-center p-1 cursor-pointer ${selected == data ? "border border-slate-600 rounded-md" : "border border-slate-300 rounded-md"}`} style={{ marginLeft: `${currentLevel * 10}px` }}>
+            <div onClick={() => setSelected(data)} className={`flex items-center p-1 cursor-pointer ${selected == data ? "border border-slate-600 rounded-md" : "border border-slate-900 rounded-md"}`} style={{ marginLeft: `${currentLevel * 10}px` }}>
                 {typeof data === "string" && getFileTypeIcon(data)}
-                {data}
-                {selected == data && <div className='flex justify-end w-full'>
-                    <div title='delete' className='cursor-pointer px-2' onClick={() => deleteItem(selected)}><DeleteIcon /></div>
-                    <div title='modify' className='cursor-pointer px-2' onClick={() => setopeneditname(!openeditname)}><EditIcon /></div>
-                </div>}
+                <EditableDiv data={data} selected={selected} deleteItem={deleteItem} renameInData={renameInData} />
             </div>
         );
     };
 
     return (
-        <div className="w-1/2 bg-slate-300 border border-gray-700 rounded-md p-5" ref={ref}>
+        <div className="w-1/2 bg-slate-900 border border-slate-200 text-slate-400 rounded-md p-5" ref={ref}>
             <div className="flex justify-end pb-3">
                 <div title='add folder' className='cursor-pointer px-2' onClick={() => setopenSetFolder(!openSetFolder)}><CreateNewFolderIcon /></div>
                 <div title='add file' className='cursor-pointer px-2' onClick={() => setopenSetFile(!openSetFile)}><NoteAddIcon /></div>
             </div>
             {renderData(folderTree, '', level)}
             {(openSetFile || openSetFolder) && selected == folderData && <input type="text"
-                className=' focus:outline-none border border-slate-400 p-1 rounded-md ml-12'
+                className=' focus:outline-none border bg-slate-900 border-slate-700 text-slate-400 p-1 rounded-md ml-12'
                 onKeyDown={handleKeyPress}
                 placeholder={`enter name`}
                 onChange={(e) => setName(e.target.value)} />}
