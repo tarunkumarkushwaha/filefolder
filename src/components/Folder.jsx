@@ -49,37 +49,6 @@ const Folder = React.forwardRef((props, ref) => {
         return icons[type];
     };
 
-    const editItemName = (oldName, newName) => {
-        const updatedData = folderTree.map((folder) => {
-            const updatedFolder = {};
-
-            for (const [key, value] of Object.entries(folder)) {
-                if (Array.isArray(value)) {
-                    const updatedValues = value.map((item) => {
-                        if (typeof item === "string") {
-                            return item === oldName ? newName : item;
-                        } else if (typeof item === "object") {
-                            const nestedKey = Object.keys(item)[0];
-                            const nestedValue = item[nestedKey].map((nestedItem) =>
-                                nestedItem === oldName ? newName : nestedItem
-                            );
-                            return { [nestedKey]: nestedValue };
-                        }
-                        return item;
-                    });
-
-                    updatedFolder[key] = updatedValues;
-                } else {
-                    updatedFolder[key] = value;
-                }
-            }
-
-            return updatedFolder;
-        });
-
-        setFolderTree(updatedData);
-    }
-
     const deleteItem = (deleteTarget) => {
         const updatedData = folderTree.map((folder) => {
             const updatedFolder = {};
@@ -113,26 +82,73 @@ const Folder = React.forwardRef((props, ref) => {
     };
 
     function addValueToArray(selectedKey, newValue) {
-        // setopenSetFile(!openSetFile)
-        if (selected == folderTree) {
-            console.log("same same")
+        // Basic validation for input file name
+        if (!newValue || typeof newValue !== "string") {
+          alert("Invalid file name");
+          return;
         }
-        else if (newValue.length > 1 && newValue.split(".")[1] in fileExtensionsMap) {
-            setFolderTree((prevData) =>
-                prevData.map((item) => {
-                    if (item[selectedKey]) {
-                        return {
-                            ...item,
-                            [selectedKey]: [...item[selectedKey], newValue]
-                        };
+      
+        const extension = newValue.split(".").pop();
+      
+        if (newValue.includes("..")) {
+          alert("Double dots are not allowed");
+          return;
+        } else if (!(extension in fileExtensionsMap)) {
+          alert("File not supported");
+          return;
+        }
+      
+        setFolderTree((prevData) => {
+          const updatedData = JSON.parse(JSON.stringify(prevData));
+
+          if (selectedKey === folderTree) {
+            updatedData.push(newValue);
+            return updatedData;
+          }
+
+          const addToMatchingKey = (data) => {
+            if (Array.isArray(data)) {
+           
+              return data.map((item) => {
+                if (typeof item === "object" && item !== null) {
+           
+                  if (item === selectedKey) {
+                 
+                    if (!Array.isArray(item.files)) {
+                      item.files = [];
                     }
-                    return item;
-                })
-            );
-        }
-        else if (newValue.split(".").length > 2) { alert("double dot not allowed") }
-        else { alert("file not supported") }
-    }
+                    item.files.push(newValue);
+                  }
+                  return addToMatchingKey(item);
+                }
+                return item;
+              });
+            } else if (typeof data === "object" && data !== null) {
+            
+              for (const key in data) {
+                if (key === selectedKey && Array.isArray(data[key])) {
+               
+                  data[key].push(newValue);
+                } else if (data[key] === selectedKey) {
+            
+                  if (!Array.isArray(data.files)) {
+                    data.files = [];
+                  }
+                  data.files.push(newValue);
+                } else {
+             
+                  addToMatchingKey(data[key]);
+                }
+              }
+            }
+            return data;
+          };
+      
+          return addToMatchingKey(updatedData);
+        });
+      }
+      
+      
 
     const renameInFolderTree = (data, selectedValue, newName) => {
        

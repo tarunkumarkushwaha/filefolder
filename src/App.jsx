@@ -53,7 +53,7 @@ const App = () => {
 
   return (
     <>
-      <h2 className='p-10 text-center font-serif bg-slate-900 font-bold min-h-[15vh]: text-xl'>Tarun File Manager</h2>
+      <h2 className='p-10 text-center font-serif bg-slate-900 text-slate-200 font-bold min-h-[15vh]: text-xl'>Tarun File Manager</h2>
       <div
         className='p-16 flex w-full justify-center bg-slate-300 min-h-[85vh] items-center'>
         <Folder
