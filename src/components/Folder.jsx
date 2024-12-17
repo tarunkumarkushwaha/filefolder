@@ -82,7 +82,7 @@ const Folder = React.forwardRef((props, ref) => {
     };
 
     function addValueToArray(selectedKey, newValue) {
-        // Basic validation for input file name
+       
         if (!newValue || typeof newValue !== "string") {
           alert("Invalid file name");
           return;
@@ -178,30 +178,54 @@ const Folder = React.forwardRef((props, ref) => {
       };
     
 
-    function addFolder(parentFolderName, newFolderName) {
-        const updatedData = folderTree.map((folder) => {
-            const updatedFolder = {};
-
-            for (const [key, value] of Object.entries(folder)) {
-                if (key.toLowerCase() === parentFolderName.toLowerCase()) {
-                    if (Array.isArray(value)) {
-                        const folderExists = value.some(
-                            (item) => typeof item === "object" && Object.keys(item)[0] === newFolderName
-                        );
-
-                        if (!folderExists) {
-                            value.push({ [newFolderName]: [] });
-                        }
-                    }
-                }
-                updatedFolder[key] = value;
+      function addFolder(parentFolderName, newFolderName) {
+        setFolderTree((prevData) => {
+          const updatedData = JSON.parse(JSON.stringify(prevData)); 
+      
+          if (parentFolderName === folderTree) {
+            const folderExists = updatedData.some(
+              (item) => typeof item === "object" && Object.keys(item)[0] === newFolderName
+            );
+      
+            if (!folderExists) {
+              updatedData.push({ [newFolderName]: [] });
             }
-
-            return updatedFolder;
+            return updatedData;
+          }
+      
+          const addFolderRecursive = (data) => {
+            if (Array.isArray(data)) {
+              return data.map((item) => {
+                if (typeof item === "object" && item !== null) {
+                  for (const key in item) {
+                    if (key.toLowerCase() === parentFolderName.toLowerCase()) {
+                   
+                      const folderExists = item[key].some(
+                        (subItem) =>
+                          typeof subItem === "object" &&
+                          Object.keys(subItem)[0] === newFolderName
+                      );
+      
+                      if (!folderExists) {
+                      
+                        item[key].push({ [newFolderName]: [] });
+                      }
+                    } else {
+                     
+                      addFolderRecursive(item[key]);
+                    }
+                  }
+                }
+                return item;
+              });
+            }
+            return data;
+          };
+      
+          return addFolderRecursive(updatedData);
         });
-
-        setFolderTree(updatedData);
-    }
+      }
+      
 
     const handleKeyPress = (event) => {
         if (event.key === 'Enter') {
