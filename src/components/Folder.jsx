@@ -82,107 +82,110 @@ const Folder = React.forwardRef((props, ref) => {
     };
 
     function addValueToArray(selectedKey, newValue) {
-       
+
         if (!newValue || typeof newValue !== "string") {
-          alert("Invalid file name");
-          return;
+            toast.error("Invalid file name");
+            return;
         }
-      
+
         const extension = newValue.split(".").pop();
-      
+
         if (newValue.includes("..")) {
-          alert("Double dots are not allowed");
-          return;
+            toast.error("Double dots are not allowed");
+            return;
         } else if (!(extension in fileExtensionsMap)) {
-          alert("File not supported");
-          return;
+            toast.error("File not supported");
+            return;
         }
-      
+
         setFolderTree((prevData) => {
-          const updatedData = JSON.parse(JSON.stringify(prevData));
+            const updatedData = JSON.parse(JSON.stringify(prevData));
 
-          if (selectedKey === folderTree) {
-            updatedData.push(newValue);
-            return updatedData;
-          }
-
-          const addToMatchingKey = (data) => {
-            if (Array.isArray(data)) {
-           
-              return data.map((item) => {
-                if (typeof item === "object" && item !== null) {
-           
-                  if (item === selectedKey) {
-                 
-                    if (!Array.isArray(item.files)) {
-                      item.files = [];
-                    }
-                    item.files.push(newValue);
-                  }
-                  return addToMatchingKey(item);
-                }
-                return item;
-              });
-            } else if (typeof data === "object" && data !== null) {
-            
-              for (const key in data) {
-                if (key === selectedKey && Array.isArray(data[key])) {
-               
-                  data[key].push(newValue);
-                } else if (data[key] === selectedKey) {
-            
-                  if (!Array.isArray(data.files)) {
-                    data.files = [];
-                  }
-                  data.files.push(newValue);
-                } else {
-             
-                  addToMatchingKey(data[key]);
-                }
-              }
+            if (selectedKey === folderTree || selectedKey == "root") {
+                updatedData.push(newValue);
+                return updatedData;
             }
-            return data;
-          };
-      
-          return addToMatchingKey(updatedData);
+
+            setSelected("root")
+
+            const addToMatchingKey = (data) => {
+                if (Array.isArray(data)) {
+
+                    return data.map((item) => {
+                        if (typeof item === "object" && item !== null) {
+
+                            if (item === selectedKey) {
+
+                                if (!Array.isArray(item.files)) {
+                                    item.files = [];
+                                }
+                                item.files.push(newValue);
+                            }
+                            return addToMatchingKey(item);
+                        }
+                        return item;
+                    });
+                } else if (typeof data === "object" && data !== null) {
+
+                    for (const key in data) {
+                        if (key === selectedKey && Array.isArray(data[key])) {
+
+                            data[key].push(newValue);
+                        } else if (data[key] === selectedKey) {
+
+                            if (!Array.isArray(data.files)) {
+                                data.files = [];
+                            }
+                            data.files.push(newValue);
+                        } else {
+
+                            addToMatchingKey(data[key]);
+                        }
+                    }
+                }
+                return data;
+            };
+
+            return addToMatchingKey(updatedData);
         });
-      }
-      
-      
+        toast.success(`${newValue} file added`)
+    }
+
+
 
     const renameInFolderTree = (data, selectedValue, newName) => {
-       
+
         if (Array.isArray(data)) {
-          return data.map(item => renameInFolderTree(item, selectedValue, newName));
+            return data.map(item => renameInFolderTree(item, selectedValue, newName));
         }
-    
+
         if (typeof data === 'object' && data !== null) {
-          const newObject = {};
-          for (const [key, value] of Object.entries(data)) {
-          
-            const newKey = (key === selectedValue) ? newName : key;
-    
-            newObject[newKey] = renameInFolderTree(value, selectedValue, newName);
-          }
-          return newObject;
+            const newObject = {};
+            for (const [key, value] of Object.entries(data)) {
+
+                const newKey = (key === selectedValue) ? newName : key;
+
+                newObject[newKey] = renameInFolderTree(value, selectedValue, newName);
+            }
+            return newObject;
         }
-    
+
         return data === selectedValue ? newName : data;
-      };
-    
-    
-      const renameInData = (selectedValue, newName) => {
+    };
+
+
+    const renameInData = (selectedValue, newName) => {
         const updatedFolderTree = renameInFolderTree(folderTree, selectedValue, newName);
         setFolderTree(updatedFolderTree);
         toast.success(`${selectedValue} is renamed to ${newName}`)
-      };
-    
+    };
 
-      function addFolder(parentFolderName, newFolderName) {
+
+    function addFolder(parentFolderName, newFolderName) {
         setFolderTree((prevData) => {
           const updatedData = JSON.parse(JSON.stringify(prevData)); 
-      
-          if (parentFolderName === folderTree) {
+
+          if (parentFolderName === folderTree || parentFolderName === "root") {
             const folderExists = updatedData.some(
               (item) => typeof item === "object" && Object.keys(item)[0] === newFolderName
             );
@@ -198,8 +201,7 @@ const Folder = React.forwardRef((props, ref) => {
               return data.map((item) => {
                 if (typeof item === "object" && item !== null) {
                   for (const key in item) {
-                    if (key.toLowerCase() === parentFolderName.toLowerCase()) {
-                   
+                    if (typeof parentFolderName === "string" && key.toLowerCase() === parentFolderName.toLowerCase()) {
                       const folderExists = item[key].some(
                         (subItem) =>
                           typeof subItem === "object" &&
@@ -207,11 +209,9 @@ const Folder = React.forwardRef((props, ref) => {
                       );
       
                       if (!folderExists) {
-                      
                         item[key].push({ [newFolderName]: [] });
                       }
                     } else {
-                     
                       addFolderRecursive(item[key]);
                     }
                   }
@@ -224,8 +224,11 @@ const Folder = React.forwardRef((props, ref) => {
       
           return addFolderRecursive(updatedData);
         });
+      
+        toast.success(`${newFolderName} folder added`);
       }
       
+
 
     const handleKeyPress = (event) => {
         if (event.key === 'Enter') {
@@ -233,9 +236,10 @@ const Folder = React.forwardRef((props, ref) => {
                 addValueToArray(selected, Name)
                 setopenSetFile(false)
             }
-            else { addFolder(selected, Name); 
+            else {
+                addFolder(selected, Name);
                 setopenSetFolder(false)
-             }
+            }
         }
     };
 
@@ -297,7 +301,7 @@ const Folder = React.forwardRef((props, ref) => {
                                 <ArrowForwardIosIcon fontSize='small' />
                             </span>
                             <EditableDiv data={key} selected={selected} deleteItem={deleteItem} renameInData={renameInData} />
-            
+
                         </span>
 
                         {!collapsed[currentKey] && (
@@ -330,7 +334,7 @@ const Folder = React.forwardRef((props, ref) => {
                 <div title='add file' className='cursor-pointer px-2' onClick={() => setopenSetFile(!openSetFile)}><NoteAddIcon /></div>
             </div>
             {renderData(folderTree, '', level)}
-            {(openSetFile || openSetFolder) && selected == folderData && <input type="text"
+            {(openSetFile || openSetFolder) && selected == "root" && <input type="text"
                 className=' focus:outline-none border bg-slate-900 border-slate-700 text-slate-400 p-1 rounded-md ml-12'
                 onKeyDown={handleKeyPress}
                 placeholder={`enter name`}

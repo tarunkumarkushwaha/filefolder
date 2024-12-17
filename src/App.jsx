@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
 const App = () => {
-  const [selected, setSelected] = useState(folderData);
+  const [selected, setSelected] = useState("root");
   const [Name, setName] = useState("");
   const [openeditname, setopeneditname] = useState(false);
   const [folderTree, setFolderTree] = useState(folderData);
@@ -36,12 +36,12 @@ const App = () => {
     toast.success(`${typeof selectedValue == "string" ? selectedValue : ""} renamed to ${newName}`)
   }
 
-  // console.log(selected,Name,"select,name")
+  console.log(selected,Name,"select,name")
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (ref.current && !ref.current.contains(event.target)) {
-        setSelected(folderData);
+        setSelected("root");
       }
     };
 
